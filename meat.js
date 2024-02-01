@@ -282,64 +282,6 @@ let userCommands = {
             })
 		} 
     },
-    kick:function(data){
-        if(this.private.runlevel<3){
-            this.socket.emit('alert','admin=true')
-            return;
-        }
-        let pu = this.room.getUsersPublic()[data]
-        if(pu&&pu.color){
-            let target;
-            this.room.users.map(n=>{
-                if(n.guid==data){
-                    target = n;
-                }
-            })
-                target.socket.emit("kick",{
-                    reason:"You got kicked."
-                })
-                target.disconnect()
-        }else{
-            this.socket.emit('alert','The user you are trying to kick left. Get dunked on nerd')
-        }
-    },
-    css:function(...txt){
-        this.room.emit('css',{
-            guid:this.guid,
-            css:txt.join(' ')
-        })
-    },
-    ban:function(data){
-        if(this.private.runlevel<3){
-            this.socket.emit('alert','admin=true')
-            return;
-        }
-        let pu = this.room.getUsersPublic()[data]
-        if(pu&&pu.color){
-            let target;
-            this.room.users.map(n=>{
-                if(n.guid==data){
-                    target = n;
-                }
-            })
-            if (target.socket.request.connection.remoteAddress == "::1"){
-                Ban.removeBan(target.socket.request.connection.remoteAddress)
-            } else if (target.socket.request.connection.remoteAddress == "::ffff:127.0.0.1"){
-                Ban.removeBan(target.socket.request.connection.remoteAddress)
-            } else {
-
-                target.socket.emit("ban",{
-                    reason:data.reason
-                })
-                Ban.addBan(target.socket.request.connection.remoteAddress, 24, data.reason);
-            }
-        }else{
-            this.socket.emit('alert','The user you are trying to kick left. Get dunked on nerd')
-        }
-    },
-    "unban": function(ip) {
-		Ban.removeBan(ip)
-    },
     "joke": function() {
         this.room.emit("joke", {
             guid: this.guid,
@@ -364,24 +306,6 @@ let userCommands = {
             guid: this.guid,
             swag: swag == "swag"
         });
-    },
-    css:function(...txt){
-        this.room.emit('css',{
-            guid:this.guid,
-            css:txt.join(' ')
-        })
-    },
-    sendraw:function(...txt){
-        this.room.emit('sendraw',{
-            guid:this.guid,
-            text:txt.join(' ')
-        })
-    },
-    rickroll:function(...txt){
-        this.room.emit('rickroll',{
-            guid:this.guid,
-            text:txt.join(' ')
-        })
     },
     "linux": "passthrough",
     "pawn": "passthrough",
@@ -437,76 +361,6 @@ let userCommands = {
         this.public.name = this.private.sanitize ? sanitize(name) : name;
         this.room.updateUser(this);
     },
-    broadcast: function (...text) {
-        if (this.private.runlevel < 3) {
-            this.socket.emit("alert", "This command requires administrator privileges");
-            return;
-        }
-        if(text.join(' ') == "" || text.join(' ') == "undefined" || text.join(' ') == "null" || text.join(' ') == null) {
-            return;
-        } else {
-            this.room.emit("broadcast", { msg: text.join(' '), sanitize: false, title: `Broadcast from ${this.public.name}` });
-        }
-    },
-    "group":function(...text){
-        text = text.join(" ")
-        if(text){
-            this.private.group = text + ""
-            this.socket.emit("alert","joined the group")
-            return
-        }
-        this.socket.emit("alert","enter a group id")
-    },
-    "dm":function(...text){
-        text = text.join(" ")
-        text = sanitize(text,settingsSantize)
-        if(!this.private.group){
-            this.socket.emit("alert","join a group first")
-            return
-        }
-        this.room.users.map(n=>{
-            if(this.private.group === n.private.group){
-                n.socket.emit("talk",{
-                    guid:this.guid,
-                    text:`<small><i>Only your group can see this.</i></small><br>${text}`,
-                    say:text
-                })
-            }
-        })
-    },
-    imageapi: function (data) {
-        
-        if (this.private.runlevel < 3) {
-            return;
-        }
-        if (data.includes('"') || data.length > 8 * 1024 * 1024) return;
-        this.room.emit("talk", { guid: this.guid, text: `<img alt="assume png" src="data:image/png;base64,${data}"/>`, say: "-e" });
-    },
-	"dm2": function (data) {
-		if (typeof data != "object") return
-		let pu = this.room.getUsersPublic()[data.target]
-		if (pu && pu.color) {
-			let target;
-			this.room.users.map(n => {
-				if (n.guid == data.target) {
-					target = n;
-				}
-			})
-			data.text = sanitize(data.text, settingsSantize)
-			target.socket.emit("talk", {
-				guid: this.guid,
-				text: `<small>Only you can see this.</small><br>${data.text}`,
-				say: data.text
-			})
-			this.socket.emit("talk", {
-				guid: this.guid,
-				text: `<small>Only ${pu.name} can see this.</small><br>${data.text}`,
-				say: data.text
-			})
-		} else {
-			this.socket.emit('alert','The user you are trying to dm left. Get dunked on nerd')
-		}
-	},
     "pitch": function(pitch) {
         pitch = parseInt(pitch);
 
